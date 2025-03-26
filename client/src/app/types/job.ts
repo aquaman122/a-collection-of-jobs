@@ -4,6 +4,6 @@ export interface IJob {
   company: string;
   link: string;
   source: string;
-  posted_data: string;
+  posted_date: string;
   created_at: string;
 }
