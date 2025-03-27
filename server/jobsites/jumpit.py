@@ -47,13 +47,11 @@ def scrape_jumpit_jobs():
             title = card.locator("h2.position_card_info_title").inner_text()
 
           company = "Unknown"
-          company_el = card.locator("div.dyMWAC span")
-          if company_el.count() > 0:
-            company = company_el.first.inner_text(timeout=2000)
-
-          # 기술 스택 리스트
-          skill_spans = card.locator("ul.iFMgIl li span")
-          skill_list = [skill_spans.nth(j).inner_text(timeout=2000) for j in range(skill_spans.count())]
+          try:
+            company_el = card.locator("div[class^='sc-'][class*='-2'] span").first
+            company = company_el.inner_text(timeout=1000).strip()
+          except Exception as e:
+            print(f"⚠️ 회사 정보 로딩 실패: {e}")
 
           # 위치 & 경력 정보
           detail_spans = card.locator("ul.cdeuol li")
@@ -63,15 +61,17 @@ def scrape_jumpit_jobs():
           if link and not link.startswith("http"):
               link = f"https://jumpit.saramin.co.kr{link}"
 
-          jobs.append({
+          job_data = {
             "title": title.strip(),
             "company": company.strip(),
-            "skills": skill_list,
             "details": details,
             "link": link,
             "source": "jumpit",
             "posted_date": datetime.today().date().isoformat(),
-          })
+          }
+
+          jobs.append(job_data)
+
         except Exception as e:
           print(f"⚠️ 크롤링 오류: [{i+1}/{count}]:", e)
           continue
@@ -80,16 +80,14 @@ def scrape_jumpit_jobs():
   return jobs
 
 def upload_to_supabase_and_filter_new(jobs):
-  today = datetime.today().date().isoformat()
-  yesterday = (datetime.today() - timedelta(days=1)).date().isoformat()
-
   headers = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type": "application/json"
   }
 
-  query = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?select=link,posted_date&or=(posted_date.eq.{yesterday},posted_date.eq.{today})"
+  # 모든 link 조회 (limit으로 수 제한)
+  query = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?select=link&limit=10000"
   existing = requests.get(query, headers=headers)
 
   if existing.status_code != 200:
@@ -97,20 +95,28 @@ def upload_to_supabase_and_filter_new(jobs):
     return []
 
   existing_links = {item["link"] for item in existing.json()}
+
   new_jobs = [job for job in jobs if job["link"] not in existing_links]
+  update_jobs = [job for job in jobs if job["link"] in existing_links]
 
   if new_jobs:
-      res = requests.post(
-        f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}",
-        headers=headers,
-        json=new_jobs
-      )
-      if res.status_code not in [200, 201]:
-        print("❌ Supabase 저장 실패:", res.text)
-      else:
-        print(f"✅ Supabase에 {len(new_jobs)}개 저장 완료")
-  else:
-    print("📭 새로운 공고 없음")
+    res = requests.post(
+      f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}",
+      headers=headers,
+      json=new_jobs
+    )
+    if res.status_code not in [200, 201]:
+      print("Supabase 저장 실패:", res.text)
+    else:
+      print(f"Supabase에 새 공고 {len(new_jobs)}개 저장 완료")
+
+  for job in update_jobs:
+    update_url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?link=eq.{job['link']}"
+    res = requests.patch(update_url, headers=headers, json=job)
+    if res.status_code not in [200, 204]:
+      print(f"업데이트 실패: {job['link']} → {res.text}")
+    else:
+      print(f"업데이트 완료: {job['link']}")
 
   return new_jobs
 
@@ -119,7 +125,7 @@ if __name__ == "__main__":
   print(f"총 {len(job_list)}개 크롤링 완료")
 
   for job in job_list:
-    print("📝", job["title"], "|", job["company"], "|", job.get("link"))
+    print(job["title"], "|", job["company"], "|", job.get("link"))
 
   new_jobs = upload_to_supabase_and_filter_new(job_list)
   print(f"🆕 오늘 새로 추가된 공고 {len(new_jobs)}개:")
