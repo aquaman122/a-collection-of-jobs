@@ -1,6 +1,5 @@
 from jobsites.jumpit import scrape_jumpit_jobs
+from jobsites.zighang import scrape_zighang_frontend_jobs
 
 def collect_all_jobs():
-    all_jobs = []
-    all_jobs.extend(scrape_jumpit_jobs())
-    return all_jobs
+  return scrape_jumpit_jobs() + scrape_zighang_frontend_jobs()

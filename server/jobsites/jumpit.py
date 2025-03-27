@@ -31,7 +31,7 @@ def scrape_jumpit_jobs():
 
     job_cards = page.locator("div.sc-d609d44f-0")
     count = job_cards.count()
-    print(f"총 {count}개의 공고 감지")
+    print(f"점핏 총 {count}개의 공고 감지")
 
     for i in range(count):
         card = job_cards.nth(i)
@@ -49,7 +49,16 @@ def scrape_jumpit_jobs():
 
           # 위치 & 경력 정보
           detail_spans = card.locator("ul.cdeuol li")
-          details = [detail_spans.nth(j).inner_text(timeout=2000) for j in range(detail_spans.count())]
+          details = []
+          for j in range(detail_spans.count()):
+            try:
+              text = detail_spans.nth(j).inner_text(timeout=2000).strip()
+              details.append(text)
+            except:
+              continue
+
+          location = details[0] if len(details) > 0 else None
+          career = details[1] if len(details) > 1 else None
 
           link = card.locator("a").first.get_attribute("href")
           if link and not link.startswith("http"):
@@ -58,7 +67,9 @@ def scrape_jumpit_jobs():
           job_data = {
             "title": title.strip(),
             "company": company.strip(),
-            "details": details,
+            "details": details if details else [],
+            "location": location,
+            "career": career,
             "link": link,
             "source": "jumpit",
             "posted_date": datetime.today().date().isoformat(),
