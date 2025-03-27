@@ -1,14 +1,6 @@
-import datetime
-from supabase_client import upload_to_supabase
+from jobsites.jumpit import scrape_jumpit_jobs
 
-def get_fake_jobs():
-  today = datetime.date.today().isoformat()
-  return [
-    {
-      "title": "프론트엔드 개발자 (React)",
-      "company": "점핏",
-      "link": "httpshttps://jumpit.saramin.co.kr/positions?jobCategory=2&sort=reg_dt",
-      "source": "jumpit",
-      "posted_date": today,
-    },
-  ]
+def collect_all_jobs():
+    all_jobs = []
+    all_jobs.extend(scrape_jumpit_jobs())
+    return all_jobs

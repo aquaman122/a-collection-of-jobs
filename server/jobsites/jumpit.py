@@ -1,14 +1,8 @@
 from playwright.sync_api import sync_playwright
-from datetime import datetime, timedelta
-import os
-import requests
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
-SUPABASE_TABLE = "job_posts"
 
 def scrape_jumpit_jobs():
   jobs = []
@@ -78,56 +72,3 @@ def scrape_jumpit_jobs():
 
     browser.close()
   return jobs
-
-def upload_to_supabase_and_filter_new(jobs):
-  headers = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json"
-  }
-
-  # 모든 link 조회 (limit으로 수 제한)
-  query = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?select=link&limit=10000"
-  existing = requests.get(query, headers=headers)
-
-  if existing.status_code != 200:
-    print("조회 실패 supabase", existing.text)
-    return []
-
-  existing_links = {item["link"] for item in existing.json()}
-
-  new_jobs = [job for job in jobs if job["link"] not in existing_links]
-  update_jobs = [job for job in jobs if job["link"] in existing_links]
-
-  if new_jobs:
-    res = requests.post(
-      f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}",
-      headers=headers,
-      json=new_jobs
-    )
-    if res.status_code not in [200, 201]:
-      print("Supabase 저장 실패:", res.text)
-    else:
-      print(f"Supabase에 새 공고 {len(new_jobs)}개 저장 완료")
-
-  for job in update_jobs:
-    update_url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?link=eq.{job['link']}"
-    res = requests.patch(update_url, headers=headers, json=job)
-    if res.status_code not in [200, 204]:
-      print(f"업데이트 실패: {job['link']} → {res.text}")
-    else:
-      print(f"업데이트 완료: {job['link']}")
-
-  return new_jobs
-
-if __name__ == "__main__":
-  job_list = scrape_jumpit_jobs()
-  print(f"총 {len(job_list)}개 크롤링 완료")
-
-  for job in job_list:
-    print(job["title"], "|", job["company"], "|", job.get("link"))
-
-  new_jobs = upload_to_supabase_and_filter_new(job_list)
-  print(f"🆕 오늘 새로 추가된 공고 {len(new_jobs)}개:")
-  for job in new_jobs:
-    print("-", job["title"], "|", job["company"])
