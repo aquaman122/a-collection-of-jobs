@@ -1,9 +1,10 @@
-import Image from "next/image";
+import JobsCard from "@/components/JobsCard";
 
 export default function Home() {
   return (
     <div>
-      home
+      <div>1</div>
+      <JobsCard />
     </div>
   );
 }
