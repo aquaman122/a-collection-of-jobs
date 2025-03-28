@@ -29,8 +29,8 @@ def scrape_jobkorea_frontend_jobs():
       if not link.startswith("http"):
         link = "https://www.jobkorea.co.kr" + link
 
-      location = None
-      career = None
+      location = ""
+      career = ""
       info_tags = card.select("ul.chip-information-group li.chip-information-item")
       for tag in info_tags:
         text = tag.text.strip()

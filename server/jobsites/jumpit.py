@@ -11,7 +11,6 @@ def scrape_jumpit_jobs():
     page = browser.new_page()
     page.goto("https://jumpit.saramin.co.kr/positions?jobCategory=2&sort=reg_dt")
     
-    print("스크롤 전체 공고 로드 중..")
     prev_height = 0
     for _ in range(10):
       page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
@@ -22,10 +21,8 @@ def scrape_jumpit_jobs():
       prev_height = curr_height
 
     try:
-      print("셀렉터 대기 중.")
       page.wait_for_selector("div.sc-d609d44f-0", timeout=10000) 
     except Exception as e:
-      print("셀렉터 대기 실패", e)
       browser.close()
       return []
 
@@ -81,5 +78,5 @@ def scrape_jumpit_jobs():
           print(f"⚠️ 크롤링 오류: [{i+1}/{count}]:", e)
           continue
 
-    browser.close()
+    print(f"점핏 프론트엔드 공고 {len(jobs)}건 크롤링 완료")
   return jobs

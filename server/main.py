@@ -1,8 +1,8 @@
 from crawler import collect_all_jobs
-from supabase_client import upload_to_supabase_and_filter_new
+from supabase_client import save_to_supabase
 
 if __name__ == "__main__":
   jobs = collect_all_jobs()
-  new_jobs = upload_to_supabase_and_filter_new(jobs)
+  save_to_supabase(jobs)
 
-  print(f"오늘 새로 추가된 공고 {len(new_jobs)}개:")
+  print(f"오늘 새로 추가된 공고 {len(jobs)}개:")

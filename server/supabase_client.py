@@ -1,41 +1,29 @@
 import os
-import requests
+from supabase import create_client
 from dotenv import load_dotenv
 
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
-SUPABASE_TABLE = "job_posts"
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def upload_to_supabase_and_filter_new(jobs):
-  headers = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json"
-  }
+def deduplicate_jobs(jobs: list[dict]) -> list[dict]:
+  job_map = {}
+  for job in jobs:
+    job_map[job["link"]] = job
+  return list(job_map.values())
 
-  # 모든 link 조회 (limit으로 수 제한)
-  query = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?select=link&limit=10000"
-  existing = requests.get(query, headers=headers)
+# ✅ Supabase 저장 함수
+def save_to_supabase(jobs: list[dict]):
+  jobs = deduplicate_jobs(jobs)
 
-  if existing.status_code != 200:
-    return []
+  if not jobs:
+    print("✅ 저장할 데이터 없음")
+    return
 
-  existing_links = {item["link"] for item in existing.json()}
-
-  new_jobs = [job for job in jobs if job["link"] not in existing_links]
-  update_jobs = [job for job in jobs if job["link"] in existing_links]
-
-  if new_jobs:
-    res = requests.post(
-      f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}",
-      headers=headers,
-      json=new_jobs
-    )
-
-  for job in update_jobs:
-    update_url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?link=eq.{job['link']}"
-    res = requests.patch(update_url, headers=headers, json=job)
-
-  return new_jobs
+  try:
+    res = supabase.table("job_posts").upsert(jobs, on_conflict=["link"]).execute()
+    print("✅ 저장 완료:", len(res.data))
+  except Exception as e:
+    print("❌ 저장 실패:", e)

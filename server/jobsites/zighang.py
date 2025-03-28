@@ -35,7 +35,7 @@ def scrape_zighang_frontend_jobs():
         "company": item.get("companyName", "Unknown"),
         "details": [],
         "location": " / ".join([str(addr) for addr in item.get("recruitmentAddress", [])]),
-        "career": ", ".join(item.get("careers", [])) or None,
+        "career": ", ".join(item.get("careers", [])) or "",
         "link": item.get("shortenedUrl", f"https://zighang.com/recruitment/{item.get('recruitmentUid')}"),
         "source": "zighang",
         "posted_date": datetime.today().date().isoformat(),
