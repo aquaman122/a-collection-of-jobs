@@ -12,6 +12,16 @@ export default function JobsCard () {
   const page = useRef(0);
   const pageSize = 50
 
+  const deduplicateJobs = (jobs: IJobs[]): IJobs[] => {
+    const map = new Map<string, IJobs>();
+    jobs.forEach((job) => {
+      if (!map.has(job.link)) {
+        map.set(job.link, job);
+      }
+    });
+    return Array.from(map.values());
+  };
+
   const fetchJobs = useCallback(async () => {
     setLoading(true);
 
@@ -28,7 +38,7 @@ export default function JobsCard () {
 
     if (data.length < pageSize) setHasMore(false)
 
-    setJobs((prev) => [...prev, ...data])
+    setJobs((prev) => deduplicateJobs([...prev, ...data]))
     page.current += 1
     setLoading(false)
   }, []);
@@ -52,8 +62,8 @@ export default function JobsCard () {
 
   return (
     <div className="grid gap-4">
-      {jobs.map((job) => (
-        <div key={job.link} className="border p-4 rounded shadow-sm">
+      {jobs.map((job, idx) => (
+        <div key={`${job.link}-${idx}`} className="border p-4 rounded shadow-sm">
           <h2 className="text-xl font-bold">{job.title}</h2>
           <p className="text-gray-600">{job.company}</p>
           <p className="text-sm">{job.career} | {job.location}</p>
