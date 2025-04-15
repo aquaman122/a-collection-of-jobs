@@ -1,1 +1,1 @@
-# a-collection-of-jobs
+# 당일 프론트엔드 개발자 공고 모아보는 사이트
