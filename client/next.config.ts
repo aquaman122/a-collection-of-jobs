@@ -4,8 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     turbo: {
-      loaders: {},
-    },
+      rules: {
+        "*.mdx": ["mdx-loader"]
+      }
+    }
   },
 };
 
