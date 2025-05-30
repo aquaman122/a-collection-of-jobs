@@ -9,7 +9,7 @@ def scrape_jumpit_jobs():
   with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     page = browser.new_page()
-    page.goto("https://jumpit.saramin.co.kr/positions?jobCategory=2&sort=reg_dt")
+    page.goto("https://jumpit.co.kr/positions?jobCategory=2&sort=reg_dt")
     
     prev_height = 0
     for _ in range(10):
@@ -59,7 +59,7 @@ def scrape_jumpit_jobs():
 
           link = card.locator("a").first.get_attribute("href")
           if link and not link.startswith("http"):
-              link = f"https://jumpit.saramin.co.kr{link}"
+              link = f"https://jumpit.co.kr{link}"
 
           job_data = {
             "title": title.strip(),
